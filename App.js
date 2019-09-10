@@ -27,6 +27,29 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 
+import axios from 'axios';
+
+// export default class App extends Component {
+//   constructor(props) {
+//     super(props);
+//     this.state = {
+//       email: '',
+//       password: ''
+  
+//     };
+//   }
+//   render (){
+//     return ()
+//   }
+  
+// }
+
+  constructor(props)
+    super(props);
+    this.state = {
+      email: '',
+      password: ''
+    };
 const App = () => {
   return (
     <View
@@ -36,6 +59,9 @@ const App = () => {
       placeholder='Email'
       underlineColorAndroid='white'
       placeholderTextColor='white'
+      onChangeText={(text) =>{
+        this.setState({email:text});
+      }}
       style={[styles.inputField1]}/>
 
       <TextInput
@@ -43,9 +69,22 @@ const App = () => {
       underlineColorAndroid='white'
       placeholderTextColor='white'
       secureTextEntry={true}
+      onChangeText={(text) =>{
+        this.setState({password:text});
+      }}
       style={styles.inputField}/>
 
-      <TouchableOpacity style={[styles.button]}>
+      <TouchableOpacity style={[styles.button]}
+      onPress={() =>{
+        axios.post('http://localhost:8000/api/login', {
+          email:this.state.email,
+          password:this.state.password
+        }).then(response => {
+          console.log(response.data);
+        }).catch(error => {
+          console.log(error);
+        })
+      }}>
         <Text style={[styles.textsize]}>Sign in</Text>
       </TouchableOpacity>
 
@@ -58,7 +97,7 @@ const styles = StyleSheet.create({
     width: 280,
     color: 'white',
     borderColor: 'white',
-    marginTop : 200,
+    marginTop : 230,
     },
   inputField: {
     width: 280,
@@ -86,7 +125,7 @@ const styles = StyleSheet.create({
     display: 'flex',
     marginTop : 35,
     height: 50,
-    width : 150,
+    width : 250,
     borderRadius: 2,
     justifyContent: 'center',
     alignItems: 'center',
@@ -95,7 +134,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowOffset: { height: 10, width: 0 },
     shadowRadius: 20,
-  }
+  },
+  button1 : {
+    display: 'flex',
+    marginTop : 20,
+    height: 50,
+    width : 250,
+    borderRadius: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#226b80',
+    shadowColor: '#000000',
+    shadowOpacity: 0.4,
+    shadowOffset: { height: 10, width: 0 },
+    shadowRadius: 20,
+  },
 });
 
 export default App;
