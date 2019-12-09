@@ -1,96 +1,165 @@
 import React, {Component} from 'react';
-import {Platform, StyleSheet, View, Alert, StatusBar} from 'react-native';
-import { Content, Fab, Button, Icon, Spinner, ListItem, Left, Body, Right, Thumbnail, Text } from 'native-base'
+import {
+  StyleSheet,
+  View,
+  StatusBar,
+  ScrollView,
+  AsyncStorage,
+  ToastAndroid,
+} from 'react-native';
+import {
+  Content,
+  Fab,
+  Icon,
+  Spinner,
+  ListItem,
+  Left,
+  Body,
+  Right,
+  Title,
+  List,
+  Header,
+  Text,
+} from 'native-base';
 import axios from 'axios';
-import ListItems from './ListItems';
-const instructions = Platform.select({
-ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
-android:
-'Double tap R on your keyboard to reload,\n' +
-'Shake or press menu button for dev menu',
-});
+import {StackActions} from 'react-navigation';
+
 export default class Homescreen extends Component {
-    constructor(props){
-        super(props);
-        this.state = {
-            data : [
-            {
-                nama : 'Bee',
-                email : 'beebewijaya@gmail.com',
-                nomor : '081298129813'
-            },
-            {
-            nama : 'John',
-            email : 'John@gmail.com',
-            nomor : '021928918998'
-            },
-            {
-            nama : 'Bob',
-            email : 'bob@gmail.com',
-            nomor : '088982989829'
-            }
-            ],
-            loading:false
-            }
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      items: [],
+      loading: true,
+    };
+    this.makeRemoteRequest = this.makeRemoteRequest.bind(this);
+    this.renderItems = this.renderItems.bind(this);
+    this.handlePostClick = this.handlePostClick.bind(this);
+  }
+
+  makeRemoteRequest = () => {
+    this.setState({loading: true});
+    setTimeout(() => {
+      axios
+        .get('http://ec2-3-81-168-96.compute-1.amazonaws.com/api/materi')
+        .then(res => {
+          const newData = this.state.data.concat(res.data);
+          console.log(res.data);
+          this.setState({
+            loading: false,
+            items: res.data.data,
+          });
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    }, 1500);
+  };
+
+  componentDidMount() {
+    this.makeRemoteRequest();
+  }
+
+  DetailPost = id => {
+    const pushAction = StackActions.push({
+      routeName: 'Detail',
+      params: {
+        id: id,
+      },
+    });
+    this.props.navigation.dispatch(pushAction);
+  };
+
+  addPost = () => {
+    const pushAction = StackActions.push({
+      routeName: 'Add',
+      params: {
+        handlePostClick: this.handlePostClick,
+      },
+    });
+    this.props.navigation.dispatch(pushAction);
+  };
+
+  handlePostClick = async payload => {
+    const token = await AsyncStorage.getItem('access_token');
+    this.setState({isLoading: true});
+    this.props.navigation.dispatch(StackActions.popToTop());
+    axios
+      .post(
+        'http://ec2-3-81-168-96.compute-1.amazonaws.com/api/materi',
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+      .then(res => {
+        const newData = this.state.items.concat(res.data.data);
+        this.setState({
+          items: newData,
+          isLoading: false,
+        });
+      })
+      .catch(err => {
+        console.log(err);
+        this.setState({
+          isLoading: false,
+        });
+      });
+  };
+
+  renderItems = () => {
+    if (this.state.loading) {
+      return <Spinner />;
+    } else {
+      const listItem = this.state.items.map(data => (
+        <ListItem
+          key={data.uuid}
+          onPress={() => this.DetailPost(data.uuid)}
+          icon
+          style={{marginVertical: 10}}>
+          <Left />
+          <Body onPress={() => this.DetailPost(data.uuid)}>
+            <Text>{data.title}</Text>
+          </Body>
+        </ListItem>
+      ));
+      return listItem;
     }
-    renderFooter = () => {
-        if(this.state.loading === false) return null;
-        return (
-            <View>
-                <Spinner color='#1e88e5' />
-                <Text style={{color:'#aaa', fontSize:12, textAlign:'center', bottom:10}}>
-                    Load more data
-                </Text>
-            </View>
-        )
-    }
-    renderList = (item,index) => {
-        return(
-            <ListItem
-            style={{marginRight:20}}
-            avatar
-            key={index}>
-                <Left>
-                    <Thumbnail style={{backgroundColor:'#1e88e5'}} source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Gnome-stock_person.svg/1024px-Gnome-stock_person.svg.png' }} />
-                </Left>
-                <Body>
-                    <Text>{item.nama}</Text>
-                    <Text note>{item.email.toLowerCase()}</Text>
-                    <Text note>{item.nomor}</Text>
-                </Body>
-            </ListItem>
-        )
-    }
-    render() {
-        return (
-            <View style={styles.container}>
-            <StatusBar
-            backgroundColor='#1e88e5'
-            barStyle='light-content'
-            />
-            <View style={{flex: 1}}>
-            <ListItems
-            {...this.props}
-            data={this.state.data}
-            renderList = {this.renderList}
-            renderFooter={this.renderFooter}/>
-            </View>
-            <Fab
-            style={{ backgroundColor: '#1e88e5' }}
-            position='bottomRight'
-            onPress={
-            () => this.props.navigation.navigate('Add', {
-            handlePostClick:this.handlePostClick
-            })}>
-            <Icon type='FontAwesome' name='pencil' />
-            </Fab>
-            </View>
-            );
-            }
-            }
-            const styles = StyleSheet.create({
-            container: {
-            flex: 1,
-            backgroundColor: '#F5FCFF',
-            }
-            });
+  };
+
+  render() {
+    return (
+      <View style={styles.container}>
+        <StatusBar backgroundColor="#1e88e5" barStyle="light-content" />
+        <Header>
+          <Body color="#1e88e5">
+            <Title>Home</Title>
+          </Body>
+          <Right />
+        </Header>
+        <Content>
+          <ScrollView>
+            <List style={{marginTop: 20}}>{this.renderItems()}</List>
+          </ScrollView>
+        </Content>
+        <Fab
+          style={{backgroundColor: '#1e88e5'}}
+          position="bottomRight"
+          onPress={() => {
+            this.addPost();
+          }}>
+          <Text>+</Text>
+        </Fab>
+      </View>
+    );
+  }
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5FCFF',
+  },
+});
